@@ -1,0 +1,59 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/bedroom/protos/Bed.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/apartment_structure/protos/Wall.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/universal_robots/protos/UR10e.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/drinks/protos/Can.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/devices/robotiq/protos/Robotiq3fGripper.proto"
+
+WorldInfo {
+}
+Viewpoint {
+  orientation 0.09365780645665599 0.08670465232538399 -0.9918218179465815 1.656014739986355
+  position 1.5615982748462227 12.616833243323736 4.936260843527127
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+Bed {
+  translation 3.82985 -3.08695 -1.64787e-14
+  rotation 0 0 1 1.57079
+}
+Wall {
+  translation 5.05209 0.0147808 -0.06
+  rotation 0 0 -1 -5.307179586466759e-06
+  size 0.2 10 3
+}
+Wall {
+  translation -0.0143442 -5.06016 4.5778e-14
+  rotation 0 0 1 1.5708
+  name "wall(1)"
+  size 0.2 10 3
+}
+Floor {
+}
+Can {
+  translation 1.2 0.45 0.05
+}
+UR10e {
+  controller "ure_can_grasper"
+  controllerArgs [
+    ""
+  ]
+  toolSlot [
+    Robotiq3fGripper {
+    }
+    DistanceSensor {
+      translation 0 0.1 0
+      rotation 0 0 1 1.5
+      lookupTable [
+        0 0 0
+        0.3 1000 0
+      ]
+    }
+  ]
+}
