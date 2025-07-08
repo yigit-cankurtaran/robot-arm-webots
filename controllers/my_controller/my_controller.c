@@ -15,7 +15,7 @@
 #define GRAB_THRESH  350.0
 
 // rad
-#define FINGER_OPEN  0.0
+#define FINGER_OPEN  0.05
 #define FINGER_CLOSED 0.85
 
 // tolerance for "joint reached target" (rad)
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
     // building new string named sensor_name to not write them all over again
     sprintf(sensor_name, "%s_sensor", finger_names[i]);
     finger_sensors[i] = wb_robot_get_device(sensor_name);
-    printf("finger sensor: %hu\n", finger_sensors[i]); // debug
+    printf("finger sensor: %d\n", finger_sensors[i]); // debug
     wb_position_sensor_enable(finger_sensors[i], TIME_STEP_MS);
   }
 
@@ -92,13 +92,84 @@ int main(int argc, char **argv) {
     char sensor_name[64];
     sprintf(sensor_name, "%s_sensor", arm_names[i]);
     arm_sensors[i] = wb_robot_get_device(sensor_name);
-    printf("arm sensor: %hu\n", arm_sensors[i]); // debug
+    printf("arm sensor: %d\n", arm_sensors[i]); // debug
     wb_position_sensor_enable(arm_sensors[i], TIME_STEP_MS);
   }
   
   WbDeviceTag dist = wb_robot_get_device("distance sensor");
   wb_distance_sensor_enable(dist, TIME_STEP_MS);
   
+  // finite state machine
   
+  State state = WAITING;
+  bool have_object = false;
+  
+  for (int i = 0; i < NUM_FINGERS; ++i){
+    wb_motor_set_position(finger_motors[i], FINGER_OPEN);
+  }
+  for (int i = 0; i < NUM_ARM_JOINTS; ++i){
+    wb_motor_set_position(arm_motors[i], HOME_POS[i]);
+  }
+  
+  while (wb_robot_step(TIME_STEP_MS) != -1){
+    switch (state) {
+      case WAITING: {
+        double d = wb_distance_sensor_get_value(dist);
+        if (d < GRAB_THRESH) {
+          printf("object detected, closing gripper\n");
+          for (int i = 0; i < NUM_FINGERS; ++i)
+            wb_motor_set_position(finger_motors[i], FINGER_CLOSED);
+          state = GRASPING;
+        }
+        break;
+      }
+      
+      case GRASPING: {
+        if (targets_reached(finger_sensors,
+           (double[NUM_FINGERS]){FINGER_CLOSED, FINGER_CLOSED,
+            FINGER_CLOSED}, NUM_FINGERS, POS_EPS)) {
+              have_object = true;
+              printf("grasp verified, moving to drop\n");
+              state = MOVING_TO_DROP;
+            }
+        break;
+      }
+      
+      case MOVING_TO_DROP: {
+        move_with_ramp(arm_motors, arm_sensors, DROP_POS, NUM_ARM_JOINTS);
+        if (targets_reached(arm_sensors, DROP_POS,
+                            NUM_ARM_JOINTS, POS_EPS)) {
+          printf("arrived, releasing object\n");
+          for (int i = 0; i < NUM_FINGERS; ++i)
+            wb_motor_set_position(finger_motors[i], FINGER_OPEN);
+          state = RELEASING;
+        }
+        break;
+      }
+      
+      case RELEASING: {
+        if (targets_reached(finger_sensors, (double[NUM_FINGERS]){FINGER_OPEN,
+                            FINGER_OPEN,FINGER_OPEN},
+                            NUM_FINGERS, POS_EPS)) {
+          have_object = false;
+          printf("object released, returning home\n");
+          state = MOVING_HOME;
+        }
+        break;
+      }
+      
+      case MOVING_HOME: {
+        move_with_ramp(arm_motors, arm_sensors, HOME_POS, NUM_ARM_JOINTS);
+        if (targets_reached(arm_sensors, HOME_POS,
+                            NUM_ARM_JOINTS, POS_EPS)) {
+          printf("home position reached – waiting again\n");
+          state = WAITING;
+        }
+        break;
+      }
+   }
+ }
+  wb_robot_cleanup();
+  return 0;
 }
 
