@@ -40,7 +40,7 @@ Can {
   translation 1.2 0.45 0.05
 }
 UR10e {
-  controller "my_controller"
+  controller "introspection"
   controllerArgs [
     ""
   ]
