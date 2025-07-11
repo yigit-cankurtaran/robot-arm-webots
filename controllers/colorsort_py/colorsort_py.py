@@ -1,35 +1,43 @@
-"""colorsort_py controller."""
+# cam_viewer_py.py
+# lists real devices then shows the camera stream via opencv
 
-# You may need to import some classes of the controller module. Ex:
-#  from controller import Robot, Motor, DistanceSensor
-from controller import Robot, Camera, Motor, PositionSensor
-import cv2 # i wanna go with a camera for color sorting
-import numpy as np
-import math
+from controller import Robot
+import cv2, numpy as np, sys
 
-# create the Robot instance.
-robot = Robot()
+TIME_STEP = 32
+bot = Robot()
 
-# get the time step of the current world.
-timestep = int(robot.getBasicTimeStep())
+# enumerate devices correctly
+names = []
+for i in range(bot.getNumberOfDevices()):
+    dev = bot.getDeviceByIndex(i)
+    if dev:                      # sometimes None for padding
+        names.append(dev.getName())
+print('devices:', names)
 
-# You should insert a getDevice-like function in order to get the
-# instance of a device of the robot. Something like:
-#  motor = robot.getDevice('motorname')
-#  ds = robot.getDevice('dsname')
-#  ds.enable(timestep)
+cam_name = 'camera'              # change if your node’s name field differs
 
-# Main loop:
-# - perform simulation steps until Webots is stopping the controller
-while robot.step(timestep) != -1:
-    # Read the sensors:
-    # Enter here functions to read sensor data, like:
-    #  val = ds.getValue()
+if cam_name not in names:
+    print(f'"{cam_name}" missing – cam still not a device.')
+    print('double-check: camera node sits under the gripper link *inside* the robot tree,'
+          ' and you saved after converting proto → base nodes.')
+    sys.exit(1)
 
-    # Process sensor data here.
+cam = bot.getDevice(cam_name)
+cam.enable(TIME_STEP)
+w, h = cam.getWidth(), cam.getHeight()
+print(f'camera online @ {w}×{h}')
 
-    # Enter here functions to send actuator commands, like:
-    #  motor.setPosition(10.0)
-    pass
+cv2.namedWindow('cam', cv2.WINDOW_AUTOSIZE)
 
-# Enter here exit cleanup code.
+while bot.step(TIME_STEP) != -1:
+    img = cam.getImage()
+    if not img:
+        continue
+    # bgra → bgr numpy
+    frame = np.frombuffer(img, dtype=np.uint8).reshape((h, w, 4))[:, :, :3]
+    cv2.imshow('cam', frame)
+    if cv2.waitKey(1) == 27:      # esc quits
+        break
+
+cv2.destroyAllWindows()
